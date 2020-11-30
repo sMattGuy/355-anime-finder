@@ -35,7 +35,11 @@ function connection_handler(req, res){
       const image_stream = fs.createReadStream("images/banner.gif");
 		image_stream.pipe(res);
    }
-	
+	else if (req.url === "/images/chika.gif"){
+      res.writeHead(200, {"Content-Type": "image/gif"});
+      const image_stream = fs.createReadStream("images/chika.gif");
+		image_stream.pipe(res);
+   }
 	else if (req.url.startsWith("/search")){
 		const user_input = url.parse(req.url, true).query;
 		const anime = user_input.anime;
@@ -83,11 +87,12 @@ function connection_handler(req, res){
 				console.log(aniListInfo);
 				let animeID = aniListInfo.data.Media.id;
 				let aniListFinalUrl = `https://anilist.co/anime/${animeID}`;
+				//let the jokes begin
 				
 				//begin webpage creation 
 				console.log("generating final page");
 				res.writeHead(200, {"Content-Type":"text/html"});
-				
+				//creating a webpage inline oh god
 				res.end(`
 				<a href = "${aniListFinalUrl}"><p>here you go king</p></a>
 				`);
