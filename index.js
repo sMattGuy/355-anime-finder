@@ -20,6 +20,7 @@ const server = http.createServer();
 server.on("request", connection_handler);
 function connection_handler(req, res){
 	console.log(`New Request for ${req.url} from ${req.socket.remoteAddress}`);
+	let animeIDPass = 0;
 	if(req.url === "/"){
 		const main = fs.createReadStream("html/main.html");
       res.writeHead(200, {"Content-Type": "text/html"});
@@ -43,7 +44,6 @@ function connection_handler(req, res){
 	else if (req.url.startsWith("/search")){
 		const user_input = url.parse(req.url, true).query;
 		const anime = user_input.anime;
-		console.log(`${anime}`);
 		//getting information from trace.moe
 		const whatanimeurl = `https://trace.moe/api/search?url=${anime}`;
 		let animeReq = https.get(whatanimeurl, function(animeReq){
@@ -59,7 +59,7 @@ function connection_handler(req, res){
 			let anilisturl = 'https://graphql.anilist.co'
 			let variables = {"title":`${title}`};
 			let reqData = JSON.stringify({
-				'query':'query($title:String){Media(search:$title,type:ANIME){id}}',
+				'query':'query($title:String){Media(search:$title,type:ANIME){id episodes genres popularity}}',
 				variables
 			});
 			console.log(reqData);
@@ -84,17 +84,47 @@ function connection_handler(req, res){
 			//use anilist data
 			function createAniListInfo(message, res){
 				let aniListInfo = JSON.parse(message);
-				console.log(aniListInfo);
 				let animeID = aniListInfo.data.Media.id;
+				animeIDPass = animeID;
+				let episodes = aniListInfo.data.Media.episodes;
+				let genre = aniListInfo.data.Media.genres;
+				let popularity = aniListInfo.data.Media.popularity;
 				let aniListFinalUrl = `https://anilist.co/anime/${animeID}`;
 				//let the jokes begin
-				
+				let authURL = "https://anilist.co/api/v2/oauth/authorize?"
+				let authInfo = {
+					"client_id":`${credentials.id}`,
+					"redirect_uri":"http://localhost:3000",
+					
+				}
 				//begin webpage creation 
 				console.log("generating final page");
 				res.writeHead(200, {"Content-Type":"text/html"});
 				//creating a webpage inline oh god
 				res.end(`
-				<a href = "${aniListFinalUrl}"><p>here you go king</p></a>
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Anime Finder</title>
+		<style>
+			body, form{
+				margin: 0 auto;
+				max-width:652px;
+				overflow-x:hidden;
+				background-color:#CCCCFF;
+			}
+			fieldset{
+				display: flex;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Your photo came up as ${title}</h1>
+		<h3>${title} is a ${genre} anime with ${episodes} episodes. Its popularity comes in at ${popularity}.</h3>
+		<a href = "${title}"><p>Link to AniList Page</p></a>
+		<img src="https://thispersondoesnotexist.com/image" style="width:120px;float:left;"/><p>Interested in adding this show to your list? <a href="https://anilist.co/api/v2/oauth/authorize?client_id=${credentials.id}&response_type=token">Click this link to do so!</a></p>
+	</body>
+</html>
 				`);
 			}
 		}
@@ -104,11 +134,18 @@ function connection_handler(req, res){
 			stream.on("data", (chunk) => body += chunk);
 			stream.on("end", () => callback(body));
 		}
-    }
-    else{
-        res.writeHead(404, {"Content-Type": "text/html"});
-        res.end(`<h1>404 Not Found</h1>`);
-    }
+   }
+	//authorization to add to list
+	else if (req.url.startsWith("/authorized")){
+		const token = req.headers.cookie;
+		console.log(token);
+		res.writeHead(404, {"Content-Type": "text/html"});
+      res.end(`<h1>Not yet implementated</h1>`);
+	}
+   else{
+      res.writeHead(404, {"Content-Type": "text/html"});
+      res.end(`<h1>404 Not Found</h1>`);
+   }
 }
 
 server.on("listening", listening_handler);
