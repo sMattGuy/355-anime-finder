@@ -3,10 +3,10 @@ const url = require("url");
 const http = require('http');
 const https = require('https');
 const querystring = require('querystring');
+
 //change depending on env
-const workingDirectory = '/var/www/html/finalProject';
-const credentialsPath = `${workingDirectory}/auth/credentials.json`;
-const credentials = require(credentialsPath);
+const workingDirectory = '.';
+const credentials = require('./auth/credentials.json');
 
 const port = 4379;
 const server = http.createServer();
@@ -107,6 +107,7 @@ function connection_handler(req, res){
 					let whatanimejson = JSON.parse(message);
 					//grabbing english title
 					let title = "";
+					//checks if actually grabbed image
 					try{
 						title = whatanimejson.docs[0].title_english;
 					}
@@ -192,7 +193,7 @@ function connection_handler(req, res){
 		<img src="./cache/${photoname}" style="width:100px;padding:10px;float:left;"><p>(Your photo for reference)</p>
 		<h3 style="clear:left;">${title} is a ${genre} anime with ${episodes} episodes. Its popularity comes in at ${popularity}.</h3>
 		<a href = "${aniListFinalUrl}"><p>Link to AniList Page</p></a>
-		<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">I love this show, Interested in adding this show to your list? <a href="https://anilist.co/api/v2/oauth/authorize?client_id=${credentials.id}&response_type=token">Click this link to do so!</a> If you want to go back to the start <a href="./">Click here instead</p></a>
+		<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">I love this show, Interested in adding this show to your list? <a href="https://anilist.co/api/v2/oauth/authorize?client_id=${credentials.client_id}&response_type=token">Click this link to do so!</a> If you want to go back to the start <a href="./">Click here instead</p></a>
 	</body>
 </html>
 						`);
