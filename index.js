@@ -3,7 +3,10 @@ const url = require("url");
 const http = require('http');
 const https = require('https');
 const querystring = require('querystring');
-const credentials = require('/var/www/html/finalProject/auth/credentials.json');
+//change depending on env
+const workingDirectory = '.';
+const credentialsPath = `${workingDirectory}/auth/credentials.json`;
+const credentials = require(credentialsPath);
 
 const port = 4379;
 const server = http.createServer();
@@ -15,34 +18,34 @@ function connection_handler(req, res){
 	if(req.url === "/"){
 		//let the jokes begin
 		let fakePerson = https.get('https://thispersondoesnotexist.com/image', function(res){
-			let fakeSave = fs.createWriteStream('/var/www/html/finalProject/cache/fakePerson.jpg',{'encoding':null});
+			let fakeSave = fs.createWriteStream(`${workingDirectory}/cache/fakePerson.jpg`,{'encoding':null});
 			res.pipe(fakeSave);
 			fakeSave.on("finish",function(){
 				console.log("Imaginary Person Saved Succesfully");
 			});
 			fakeSave.on('error',function(err){console.log(err)});
 		});
-		const main = fs.createReadStream("/var/www/html/finalProject/html/main.html");
+		const main = fs.createReadStream(`${workingDirectory}/html/main.html`);
       res.writeHead(200, {"Content-Type": "text/html"});
       main.pipe(res);
    }
 	else if (req.url === "/favicon.ico"){
-		const icon = fs.createReadStream("/var/www/html/finalProject/images/favicon.ico");
+		const icon = fs.createReadStream(`${workingDirectory}/images/favicon.ico`);
       res.writeHead(200, {"Content-Type": "image/x-icon"});
 		icon.pipe(res);
    }
 	else if (req.url === "/images/banner.gif"){
       res.writeHead(200, {"Content-Type": "image/gif"});
-      const image_stream = fs.createReadStream("/var/www/html/finalProject/images/banner.gif");
+      const image_stream = fs.createReadStream(`${workingDirectory}/images/banner.gif`);
 		image_stream.pipe(res);
    }
 	else if (req.url === "/images/chika.gif"){
       res.writeHead(200, {"Content-Type": "image/gif"});
-      const image_stream = fs.createReadStream("/var/www/html/finalProject/images/chika.gif");
+      const image_stream = fs.createReadStream(`${workingDirectory}/images/chika.gif`);
 		image_stream.pipe(res);
    }
 	else if (req.url.startsWith("/cache/")){
-      let image_stream = fs.createReadStream(`/var/www/html/finalProject${req.url}`);
+      let image_stream = fs.createReadStream(`${workingDirectory}${req.url}`);
 		image_stream.on("error",image_error_handler);
 		function image_error_handler(err){
 			res.writeHead(404, {"Content-Type":"text/plain"});
@@ -76,7 +79,7 @@ function connection_handler(req, res){
 			if(photoname.includes(".jpg")||photoname.includes(".png")||photoname.includes(".jpeg")){
 				console.log("Valid Photo");
 				//downloads the image into cache
-				let filepath = '/var/www/html/finalProject/cache/';
+				let filepath = `${workingDirectory}/cache/`;
 				let fullpath = `${filepath}${photoname}`;
 				if(!fs.existsSync(fullpath)){
 					let imgReq = https.get(anime, function(res){
@@ -134,7 +137,7 @@ function connection_handler(req, res){
 						let genre = aniListInfo.data.Media.genres;
 						let popularity = aniListInfo.data.Media.popularity;
 						let aniListFinalUrl = `https://anilist.co/anime/${animeID}`;
-						const animeInfo = `/var/www/html/finalProject/cache/${animeID}.json`;
+						const animeInfo = `${workingDirectory}/cache/${animeID}.json`;
 						if(!fs.existsSync(animeInfo)){
 							let filedata = {
 								"title":`${title}`,
@@ -239,7 +242,7 @@ function connection_handler(req, res){
 			let resultsInfo = JSON.parse(message);
 			let id = resultsInfo.mediaId;
 			let status = resultsInfo.status;
-			let cache = `/var/www/html/finalProject/cache/${animeIDPass}`;
+			let cache = `${workingDirectory}/cache/${animeIDPass}`;
 			let animeInfo = require(cache);
 			res.writeHead(200, {"Content-Type": "text/html"});
 			res.end(`
