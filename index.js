@@ -66,7 +66,7 @@ function connection_handler(req, res){
 	else if (req.url.startsWith("/search")){
 		const user_input = url.parse(req.url, true).query;
 		function isValidUrl(string) {
-			if(string.length > 250){
+			if(string.length > 500){
 			   return false;
 			}
 			try {
@@ -106,7 +106,16 @@ function connection_handler(req, res){
 				function whatanimeresults(message, res){
 					let whatanimejson = JSON.parse(message);
 					//grabbing english title
-					let title = whatanimejson.docs[0].title_english;
+					let title = "";
+					try{
+						title = whatanimejson.docs[0].title_english;
+					}
+					catch(err){
+						res.writeHead(404, {"Content-Type": "text/html"});
+      						res.end(`<h1>Invalid Image Formet</h1>
+							 <p>Make sure your image URL ends in a file extension</p>`);
+						return;
+					}
 					console.log(title);
 					//creating api request
 					let anilisturl = 'https://graphql.anilist.co'
