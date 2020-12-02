@@ -5,8 +5,8 @@ const https = require('https');
 const querystring = require('querystring');
 
 //change depending on env
-const workingDirectory = '.';
-const credentials = require('./auth/credentials.json');
+const workingDirectory = '/var/www/html/finalProject';
+const credentials = require('/var/www/html/finalProject/auth/credentials.json');
 
 const port = 4379;
 const server = http.createServer();
@@ -69,6 +69,9 @@ function connection_handler(req, res){
 			if(string.length > 500){
 			   return false;
 			}
+			if(!string.startsWith("https:")){
+				return false;
+			}
 			try {
 				new URL(string);
 			} catch (_) {
@@ -88,22 +91,47 @@ function connection_handler(req, res){
 				let filepath = `${workingDirectory}/cache/`;
 				let fullpath = `${filepath}${photoname}`;
 				if(!fs.existsSync(fullpath)){
+					console.log("downloading user image");
 					let imgReq = https.get(anime, function(res){
 						let newImg = fs.createWriteStream(fullpath,{'encoding':null});
 						res.pipe(newImg);
 						newImg.on("finish",function(){
 							console.log("Upload Image Saved Succesfully");
+							getanime();
 						});
-						newImg.on('error',function(err){console.log(err)});
+						newImg.on('error',function(err){
+							console.log(err);
+							res.writeHead(404, {"Content-Type": "text/html"});
+						        res.end(`<h1>Input URL Unreachable</h1>`);
+							return;
+						});
 					});
 				}
+				function getanime(){
 				//getting information from trace.moe
-				const whatanimeurl = `https://trace.moe/api/search?url=${anime}`;
-				let animeReq = https.get(whatanimeurl, function(animeReq){
-					stream_to_message(animeReq, message => whatanimeresults(message, res));
+				const whatanimeurl = `https://trace.moe/api/search`;
+				let image = fs.readFileSync(fullpath);
+				let base64img = new Buffer(image).toString('base64');
+				const whatanimeoptions = {
+					'method':'POST',
+					'headers':{
+						'Content-Type':'application/json'
+					}
+				}
+				const whatanimedata = {
+					'image':`${base64img}`
+				}
+				console.log("searching trace.moe");
+				let animeReq = https.request(whatanimeurl, whatanimeoptions, function(animeReq){
+					animeReq.on('error',(err)=>{console.log(err)});
+					animeReq.on('response',(animeReq) =>{
+						stream_to_message(animeReq, message => whatanimeresults(message, res));
+					});
+					animeReq.end(whatanimedata);
 				});
 				//parse response from what anime
 				function whatanimeresults(message, res){
+					console.log("what anime info gotten");
 					let whatanimejson = JSON.parse(message);
 					//grabbing english title
 					let title = "";
@@ -198,6 +226,7 @@ function connection_handler(req, res){
 </html>
 						`);
 					}
+				}
 				}
 				//parse response from https call
 				function stream_to_message(stream, callback){
@@ -308,3 +337,4 @@ function listening_handler(){
 }
 
 server.listen(port);
+
