@@ -4,7 +4,7 @@ const http = require('http');
 const https = require('https');
 const querystring = require('querystring');
 //change depending on env
-const workingDirectory = '.';
+const workingDirectory = '/var/www/html/finalProject';
 const credentialsPath = `${workingDirectory}/auth/credentials.json`;
 const credentials = require(credentialsPath);
 
@@ -109,7 +109,6 @@ function connection_handler(req, res){
 						'query':'query($title:String){Media(search:$title,type:ANIME){id episodes genres popularity}}',
 						variables
 					});
-					console.log(reqData);
 					let options = {
 						'method':'POST',
 						'headers':{
@@ -220,7 +219,6 @@ function connection_handler(req, res){
 			query,
 			variables
 		});
-		console.log(reqData);
 		//requesting information
 		let anilistReq = https.request(endpoint,options);
 		anilistReq.on('error',error_handler);
