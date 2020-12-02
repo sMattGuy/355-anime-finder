@@ -34,6 +34,12 @@ function connection_handler(req, res){
       res.writeHead(200, {"Content-Type": "image/x-icon"});
 		icon.pipe(res);
    }
+	else if (req.url === "/images/mainicon.png"){
+		const icon = fs.createReadStream(`${workingDirectory}/images/mainicon.png`);
+      res.writeHead(200, {"Content-Type": "image/png"});
+		icon.pipe(res);
+   }
+
 	else if (req.url === "/images/banner.gif"){
       res.writeHead(200, {"Content-Type": "image/gif"});
       const image_stream = fs.createReadStream(`${workingDirectory}/images/banner.gif`);
@@ -177,7 +183,7 @@ function connection_handler(req, res){
 		<img src="./cache/${photoname}" style="width:100px;padding:10px;float:left;"><p>(Your photo for reference)</p>
 		<h3 style="clear:left;">${title} is a ${genre} anime with ${episodes} episodes. Its popularity comes in at ${popularity}.</h3>
 		<a href = "${aniListFinalUrl}"><p>Link to AniList Page</p></a>
-		<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">I love this show, Interested in adding this show to your list? <a href="https://anilist.co/api/v2/oauth/authorize?client_id=${credentials.id}&response_type=token">Click this link to do so!</a></p>
+		<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">I love this show, Interested in adding this show to your list? <a href="https://anilist.co/api/v2/oauth/authorize?client_id=${credentials.id}&response_type=token">Click this link to do so!</a> If you want to go back to the start <a href="./">Click here instead</p></a>
 	</body>
 </html>
 						`);
@@ -263,7 +269,7 @@ function connection_handler(req, res){
 	<body>
 		<h1>${animeInfo.title} has been added to your list!</h1>
 		<a href ="https://anilist.co/anime/${animeInfo.id}"><p>Link to the show</p></a>
-		<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">Thank you for adding this show, you'll love it.</p>
+		<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">Thank you for adding this show, you'll love it. Wanna search again? <a href="./">Click here to go back to the start</p></a>
 	</body>
 </html>
 			`);
