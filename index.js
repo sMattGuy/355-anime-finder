@@ -5,8 +5,8 @@ const https = require('https');
 const querystring = require('querystring');
 
 //change depending on env
-const workingDirectory = '/var/www/html/finalProject';
-const credentials = require('/var/www/html/finalProject/auth/credentials.json');
+const workingDirectory = '.';
+const credentials = require('./auth/credentials.json');
 
 const port = 4379;
 const server = http.createServer();
@@ -65,6 +65,7 @@ function connection_handler(req, res){
    }
 	else if (req.url.startsWith("/search")){
 		const user_input = url.parse(req.url, true).query;
+		//all for pre use url checking
 		function isValidUrl(string) {
 			if(string.length > 500){
 			   return false;
@@ -91,115 +92,123 @@ function connection_handler(req, res){
 				let filepath = `${workingDirectory}/cache/`;
 				let fullpath = `${filepath}${photoname}`;
 				if(!fs.existsSync(fullpath)){
-					console.log("downloading user image");
 					let imgReq = https.get(anime, function(res){
 						let newImg = fs.createWriteStream(fullpath,{'encoding':null});
 						res.pipe(newImg);
+						//image done
 						newImg.on("finish",function(){
 							console.log("Upload Image Saved Succesfully");
 							getanime();
 						});
+						//writing error
 						newImg.on('error',function(err){
-							console.log(err);
 							res.writeHead(404, {"Content-Type": "text/html"});
-						        res.end(`<h1>Input URL Unreachable</h1>`);
+						   res.end(`<h1>Failed To Write Image</h1>`);
 							return;
 						});
 					});
+					//url is a photo but is unreachable
+					imgReq.on('error',function(err){
+						res.writeHead(404, {"Content-Type": "text/html"});
+						res.end(`<h1>Input URL Unreachable</h1>`);
+						return;
+					});
+				}
+				else{
+					getanime();
 				}
 				function getanime(){
-				//getting information from trace.moe
-				const whatanimeurl = `https://trace.moe/api/search`;
-				let image = fs.readFileSync(fullpath);
-				let base64img = new Buffer(image).toString('base64');
-				const whatanimeoptions = {
-					'method':'POST',
-					'headers':{
-						'Content-Type':'application/json'
-					}
-				}
-				const whatanimedata = {
-					'image':`${base64img}`
-				}
-				console.log("searching trace.moe");
-				let animeReq = https.request(whatanimeurl, whatanimeoptions, function(animeReq){
-					animeReq.on('error',(err)=>{console.log(err)});
-					animeReq.on('response',(animeReq) =>{
-						stream_to_message(animeReq, message => whatanimeresults(message, res));
-					});
-					animeReq.end(whatanimedata);
-				});
-				//parse response from what anime
-				function whatanimeresults(message, res){
-					console.log("what anime info gotten");
-					let whatanimejson = JSON.parse(message);
-					//grabbing english title
-					let title = "";
-					//checks if actually grabbed image
-					try{
-						title = whatanimejson.docs[0].title_english;
-					}
-					catch(err){
-						res.writeHead(404, {"Content-Type": "text/html"});
-      						res.end(`<h1>Invalid Image Formet</h1>
-							 <p>Make sure your image URL ends in a file extension</p>`);
-						return;
-					}
-					console.log(title);
-					//creating api request
-					let anilisturl = 'https://graphql.anilist.co'
-					let variables = {"title":`${title}`};
-					let reqData = JSON.stringify({
-						'query':'query($title:String){Media(search:$title,type:ANIME){id episodes genres popularity}}',
-						variables
-					});
-					let options = {
+					console.log("getting info ready");
+					//getting information from trace.moe
+					const whatanimeurl = `https://trace.moe/api/search`;
+					let base64img = fs.readFileSync(fullpath,'base64');
+					const whatanimeoptions = {
 						'method':'POST',
 						'headers':{
-							'Content-Type':'application/json',
-							'Accept':'application/json',
-						},
-					}
-					//requesting information
-					let anilistReq = https.request(anilisturl,options);
-					anilistReq.on('error',error_handler);
-					function error_handler(err){
-						throw err;
-					}
-					anilistReq.once('response', post_auth_cb);
-					function post_auth_cb(incoming_msg_stream){
-						stream_to_message(incoming_msg_stream, message => createAniListInfo(message, res));
-					}
-					anilistReq.end(reqData);
-					//use anilist data
-					function createAniListInfo(message, res){
-						let aniListInfo = JSON.parse(message);
-						let animeID = aniListInfo.data.Media.id;
-						animeIDPass = animeID;
-						let episodes = aniListInfo.data.Media.episodes;
-						let genre = aniListInfo.data.Media.genres;
-						let popularity = aniListInfo.data.Media.popularity;
-						let aniListFinalUrl = `https://anilist.co/anime/${animeID}`;
-						const animeInfo = `${workingDirectory}/cache/${animeID}.json`;
-						if(!fs.existsSync(animeInfo)){
-							let filedata = {
-								"title":`${title}`,
-								"id":`${animeID}`,
-								"episodes":`episodes`,
-								"genre":`${genre}`,
-								"popularity":`${popularity}`
-							};
-							let inputData = JSON.stringify(filedata);
-							fs.writeFile(animeInfo,inputData, (err) => {
-								if(err) throw err;
-								console.log("File Written Succesfully");
-							});
+							'Content-Type':'application/json'
 						}
-						//begin webpage creation 
-						console.log("generating final page");
-						res.writeHead(200, {"Content-Type":"text/html"});
-						//creating a webpage inline oh god
-						res.end(`
+					}
+					const whatanimedata = JSON.stringify({
+						'image':`${base64img}`
+					});
+					console.log("searching trace.moe");
+					let animeReq = https.request(whatanimeurl, whatanimeoptions);
+					animeReq.on('response',(results) => {
+						stream_to_message(results, message => whatanimeresults(message, res));
+					});
+					animeReq.on('error', function(err){console.log(err);});
+					animeReq.end(whatanimedata);
+					//parse response from what anime
+					function whatanimeresults(message, res){
+						console.log("what anime info gotten");
+						let whatanimejson = JSON.parse(message);
+						//grabbing english title
+						let title = "";
+						//checks if actually grabbed image
+						try{
+							title = whatanimejson.docs[0].title_english;
+						}
+						catch(err){
+							res.writeHead(404, {"Content-Type": "text/html"});
+									res.end(`<h1>Invalid Image Formet</h1>
+								 <p>Make sure your image URL ends in a file extension</p>`);
+							return;
+						}
+						console.log(title);
+						//creating api request
+						let anilisturl = 'https://graphql.anilist.co'
+						let variables = {"title":`${title}`};
+						let reqData = JSON.stringify({
+							'query':'query($title:String){Media(search:$title,type:ANIME){id episodes genres popularity}}',
+							variables
+						});
+						let options = {
+							'method':'POST',
+							'headers':{
+								'Content-Type':'application/json',
+								'Accept':'application/json',
+							},
+						}
+						//requesting information
+						let anilistReq = https.request(anilisturl,options);
+						anilistReq.on('error',error_handler);
+						function error_handler(err){
+							throw err;
+						}
+						anilistReq.once('response', post_auth_cb);
+						function post_auth_cb(incoming_msg_stream){
+							stream_to_message(incoming_msg_stream, message => createAniListInfo(message, res));
+						}
+						anilistReq.end(reqData);
+						//use anilist data
+						function createAniListInfo(message, res){
+							let aniListInfo = JSON.parse(message);
+							let animeID = aniListInfo.data.Media.id;
+							animeIDPass = animeID;
+							let episodes = aniListInfo.data.Media.episodes;
+							let genre = aniListInfo.data.Media.genres;
+							let popularity = aniListInfo.data.Media.popularity;
+							let aniListFinalUrl = `https://anilist.co/anime/${animeID}`;
+							const animeInfo = `${workingDirectory}/cache/${animeID}.json`;
+							if(!fs.existsSync(animeInfo)){
+								let filedata = {
+									"title":`${title}`,
+									"id":`${animeID}`,
+									"episodes":`episodes`,
+									"genre":`${genre}`,
+									"popularity":`${popularity}`
+								};
+								let inputData = JSON.stringify(filedata);
+								fs.writeFile(animeInfo,inputData, (err) => {
+									if(err) throw err;
+									console.log("File Written Succesfully");
+								});
+							}
+							//begin webpage creation 
+							console.log("generating final page");
+							res.writeHead(200, {"Content-Type":"text/html"});
+							//creating a webpage inline oh god
+							res.end(`
 <!DOCTYPE html>
 <html>
 	<head>
@@ -224,15 +233,15 @@ function connection_handler(req, res){
 		<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">I love this show, Interested in adding this show to your list? <a href="https://anilist.co/api/v2/oauth/authorize?client_id=${credentials.client_id}&response_type=token">Click this link to do so!</a> If you want to go back to the start <a href="./">Click here instead</p></a>
 	</body>
 </html>
-						`);
+							`);
+						}
 					}
-				}
-				}
-				//parse response from https call
-				function stream_to_message(stream, callback){
-					let body = "";
-					stream.on("data", (chunk) => body += chunk);
-					stream.on("end", () => callback(body));
+					//parse response from https call
+					function stream_to_message(stream, callback){
+						let body = "";
+						stream.on("data", (chunk) => body += chunk);
+						stream.on("end", () => callback(body));
+					}
 				}
 			}
 			else{
