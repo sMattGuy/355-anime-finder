@@ -7,6 +7,7 @@ const querystring = require('querystring');
 //change depending on env
 const workingDirectory = '.';
 const credentials = require('./auth/credentials.json');
+const network = 'http://localhost:4379';
 
 const port = 4379;
 const server = http.createServer();
@@ -204,35 +205,46 @@ function connection_handler(req, res){
 									console.log("File Written Succesfully");
 								});
 							}
+							const redirectUrl = querystring.stringify({"redirect_uri":`${network}/authorized`});
+							console.log(redirectUrl);
+							const authURL = "https://anilist.co/api/v2/oauth/authorize?"
+							const authquery = {
+								"client_id":`${credentials.client_id}`,
+								"redirect_uri":`${network}/authorized`,
+								"response_type":"code"
+							}
+							const queryReq = querystring.stringify(authquery);
+							const completeURL = `${authURL}${queryReq}`;
+							console.log(completeURL);
 							//begin webpage creation 
 							console.log("generating final page");
 							res.writeHead(200, {"Content-Type":"text/html"});
 							//creating a webpage inline oh god
 							res.end(`
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Anime Finder</title>
-		<style>
-			body, form{
-				margin: 0 auto;
-				max-width:652px;
-				overflow-x:hidden;
-				background-color:#CCCCFF;
-			}
-			fieldset{
-				display: flex;
-			}
-		</style>
-	</head>
-	<body>
-		<h1>Your photo came up as ${title}</h1>
-		<img src="./cache/${photoname}" style="width:100px;padding:10px;float:left;"><p>(Your photo for reference)</p>
-		<h3 style="clear:left;">${title} is a ${genre} anime with ${episodes} episodes. Its popularity comes in at ${popularity}.</h3>
-		<a href = "${aniListFinalUrl}"><p>Link to AniList Page</p></a>
-		<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">I love this show, Interested in adding this show to your list? <a href="https://anilist.co/api/v2/oauth/authorize?client_id=${credentials.client_id}&response_type=token">Click this link to do so!</a> If you want to go back to the start <a href="./">Click here instead</p></a>
-	</body>
-</html>
+							<!DOCTYPE html>
+							<html>
+								<head>
+									<title>Anime Finder</title>
+									<style>
+										body, form{
+											margin: 0 auto;
+											max-width:652px;
+											overflow-x:hidden;
+											background-color:#CCCCFF;
+										}
+										fieldset{
+											display: flex;
+										}
+									</style>
+								</head>
+								<body>
+									<h1>Your photo came up as ${title}</h1>
+									<img src="./cache/${photoname}" style="width:100px;padding:10px;float:left;"><p>(Your photo for reference)</p>
+									<h3 style="clear:left;">${title} is a ${genre} anime with ${episodes} episodes. Its popularity comes in at ${popularity}.</h3>
+									<a href = "${aniListFinalUrl}"><p>Link to AniList Page</p></a>
+									<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">I love this show, Interested in adding this show to your list? <a href="${completeURL}">Click this link to do so!</a> If you want to go back to the start <a href="./">Click here instead</p></a>
+								</body>
+							</html>
 							`);
 						}
 					}
@@ -254,85 +266,112 @@ function connection_handler(req, res){
 			res.end(`<h1>400 Invalid URL Entered</h1>`);
 		}
 	}
-	//gets auth token
-	else if (req.url.startsWith("/authorized?")){
-		const accessInfo = url.parse(req.url, true).query;
-		const token = accessInfo.access_token;
-		let endpoint = 'https://graphql.anilist.co';
-		let options = {
-			"method": "POST",
-			"headers": {
-				"Authorization": `Bearer ${token}`,
+	//authorization to add to list
+	else if (req.url.startsWith("/authorized")){
+		const authtoken = url.parse(req.url, true).query;
+		const token = authtoken.code;
+		const authoptions = {
+			"uri":"https://anilist.co/api/v2/oauth/token",
+			"method":"POST",
+			"headers":{
 				"Content-Type":"application/json",
 				"Accept":"application/json"
 			}
-		}
-		let query = 'mutation($mediaId:Int, $status: MediaListStatus){SaveMediaListEntry(mediaId: $mediaId, status: $status){id status}}';
-		let variables = {"mediaId":`${animeIDPass}`,"status":"PLANNING"};
-		let reqData = JSON.stringify({
-			query,
-			variables
+		};
+		const authdata =JSON.stringify({
+			"grant_type":"authorization_code",
+			"client_id":`${credentials.client_id}`,
+			"client_secret":`${credentials.client_secret}`,
+			"redirect_uri":`${network}/authorized`,
+			"code":`${token}`
 		});
-		//requesting information
-		let anilistReq = https.request(endpoint,options);
-		anilistReq.on('error',error_handler);
-		function error_handler(err){
-			throw err;
-		}
-		anilistReq.once('response', post_auth_cb);
+		const authreq = https.request("https://anilist.co/api/v2/oauth/token", authoptions);
+		authreq.on('error', (err) => {
+			console.log(err);
+			console.log(authreq);
+			res.writeHead(404, {"Content-Type": "text/html"});
+			res.end(`<h1>Failed To Authenticate</h1>`);
+		});
+		authreq.on('response', post_auth_cb);
 		function post_auth_cb(incoming_msg_stream){
-			stream_to_message(incoming_msg_stream, message => addedToList(message, res));
+			stream_to_message(incoming_msg_stream, message => addToList(message, res));
 		}
-		anilistReq.end(reqData);
+		authreq.end(authdata);
 		//parse response from https call
 		function stream_to_message(stream, callback){
 			let body = "";
 			stream.on("data", (chunk) => body += chunk);
 			stream.on("end", () => callback(body));
 		}
-		function addedToList(message, res){
-			let resultsInfo = JSON.parse(message);
-			let id = resultsInfo.mediaId;
-			let status = resultsInfo.status;
-			let cache = `${workingDirectory}/cache/${animeIDPass}`;
-			let animeInfo = require(cache);
-			res.writeHead(200, {"Content-Type": "text/html"});
-			res.end(`
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Anime Finder</title>
-		<style>
-			body, form{
-				margin: 0 auto;
-				max-width:652px;
-				overflow-x:hidden;
-				background-color:#CCCCFF;
+		function addToList(message, res){
+			const parsedmessage = JSON.parse(message);
+			const token = parsedmessage.access_token;
+			let endpoint = 'https://graphql.anilist.co';
+			let options = {
+				"method": "POST",
+				"headers": {
+					"Authorization": `Bearer ${token}`,
+					"Content-Type":"application/json",
+					"Accept":"application/json"
+				}
 			}
-			fieldset{
-				display: flex;
+			let query = 'mutation($mediaId:Int, $status: MediaListStatus){SaveMediaListEntry(mediaId: $mediaId, status: $status){id status}}';
+			let variables = {"mediaId":`${animeIDPass}`,"status":"PLANNING"};
+			let reqData = JSON.stringify({
+				query,
+				variables
+			});
+			//requesting information
+			let anilistReq = https.request(endpoint,options);
+			anilistReq.on('error',error_handler);
+			function error_handler(err){
+				throw err;
 			}
-		</style>
-	</head>
-	<body>
-		<h1>${animeInfo.title} has been added to your list!</h1>
-		<a href ="https://anilist.co/anime/${animeInfo.id}"><p>Link to the show</p></a>
-		<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">Thank you for adding this show, you'll love it. Wanna search again? <a href="./">Click here to go back to the start</p></a>
-	</body>
-</html>
-			`);
+			anilistReq.once('response', post_auth_cb);
+			function post_auth_cb(incoming_msg_stream){
+				stream_to_message(incoming_msg_stream, message => addedToList(message, res));
+			}
+			anilistReq.end(reqData);
+			//parse response from https call
+			function stream_to_message(stream, callback){
+				let body = "";
+				stream.on("data", (chunk) => body += chunk);
+				stream.on("end", () => callback(body));
+			}
+			//creates final page
+			function addedToList(message, res){
+				let resultsInfo = JSON.parse(message);
+				let id = resultsInfo.mediaId;
+				let status = resultsInfo.status;
+				let cache = `${workingDirectory}/cache/${animeIDPass}`;
+				let animeInfo = require(cache);
+				res.writeHead(200, {"Content-Type": "text/html"});
+				res.end(`
+				<!DOCTYPE html>
+				<html>
+					<head>
+						<title>Anime Finder</title>
+						<style>
+							body, form{
+								margin: 0 auto;
+								max-width:652px;
+								overflow-x:hidden;
+								background-color:#CCCCFF;
+							}
+							fieldset{
+								display: flex;
+							}
+						</style>
+					</head>
+					<body>
+						<h1>${animeInfo.title} has been added to your list!</h1>
+						<a href ="https://anilist.co/anime/${animeInfo.id}"><p>Link to the show</p></a>
+						<img src="./cache/fakePerson.jpg" style="width:120px;float:left;padding:10px"/><p style="font-family: 'Bradley Hand', cursive;">Thank you for adding this show, you'll love it. Wanna search again? <a href="./">Click here to go back to the start</p></a>
+					</body>
+				</html>
+				`);
+			}
 		}
-	}
-	//authorization to add to list
-	else if (req.url.startsWith("/authorized")){
-		res.writeHead(200, {"Content-Type": "text/html"});
-      res.end(`
-			<script>
-			let url = window.location.href;
-			url = url.replace("#","?");
-			window.location.replace(url);
-			</script>
-		`);
 	}
    else{
       res.writeHead(404, {"Content-Type": "text/html"});
