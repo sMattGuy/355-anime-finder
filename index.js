@@ -5,9 +5,9 @@ const https = require('https');
 const querystring = require('querystring');
 
 //change depending on env
-const workingDirectory = '/var/www/html/finalProject';
-const credentials = require('/var/www/html/finalProject/auth/credentials.json');
-const network = 'http://67.244.23.211:4379';
+const workingDirectory = '.';
+const credentials = require('./auth/credentials.json');
+const network = 'http://localhost:4379';
 
 const port = 4379;
 const server = http.createServer();
