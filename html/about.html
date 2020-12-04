@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Anime Finder</title>
+		<style>
+			body{
+				margin: 0 auto;
+				max-width:652px;
+				overflow-x:hidden;
+				background-color:#CCCCFF;
+			}
+		</style>
+	</head>
+	<body>
+        <a href="./main.html"><img src="../images/favicon.ico" style="width:50px;position:absolute;top:0;left:0;"/></a>
+		<h1>About this Project</h1>
+		<p>This project is for Queens College course 355, Internet and Web Technologies. Here I'll breifly explain the process that the website uses
+		   to find and generate all its information.</p>
+		<h2>API Usage</h2>
+		<p>As per the specifications for this project, two APIs are used, "WhatAnime" and "AniList". WhatAnime finds the anime title based on a screenshot the user supplies
+		   and AniList retreives information about the show by searching for its title in their database. Below I'll explain each API in more detail.</p>
+		<h3>WhatAnime (trace.moe/about)</h3>
+		<p>WhatAnime is an API that has a large database of frames from many shows. These frames are compared to the image a user puts in, and it attempts to
+		   find the best match. It's not 100% accurate as you can imagine, but for most anime it will find what you put in. To test an image, you can either
+		   call its endpoint with a URL containing the photo, but this then requires the image to be public. For this project that would have worked, but instead
+		   to test caching, the image input is saved, then it is base64 encoded and sent using WhatAnime's POST query. Overall this API does a considerable amount 
+		   of work, and I have donated to them for their utilization in this project.</p>
+		<h3>AniList (anilist.gitbook.io/anilist-apiv2-docs/)</h3>
+		<p>AniList is an anime data storage app, that holds information about many shows, and also allows for users to upload watch lists, rate shows, and keep 
+		   track of what shows they have watched or plan to watch. In this project, I use their database to get information about the show, and then after 
+		   getting said information, I allow users to add the show to their watch list under the "Plannned" tag. This was done since the project requires some 
+		   type of authentication usage. I didn't want to make the user login to AniList immediatly, so I instead offer it after the show has already been found.
+		   AniList uses the GraphQl model for its query language, which allows for very fine control of what data is sent and what is recieved, which was nice to work with.</p>
+		<h2>Getting Results On This Site</h2>
+		<p>As expected, the site can be very fickle when it comes to working. Anime screen captures must be full frames from the show, cropped pictures wont work. The site also
+		   doesn't deal with any image type except JPEG, JPG, and PNG. It also only works if the URL is secure (HTTPS) and will not allow users to use a HTTP URL. Once an image is 
+		   chosen, the site downloads it to a cache folder, base64 encodes it, and applies it to WhatAnime's API, where from there the search begins. This search takes considerable time 
+		   (sometimes upwards of 5 seconds) but once the results come in, the title found is passed into AniList's API, where the search results try to find a show with the matching
+		   title. Once the show is found, all the data relating to the show is cached, and the final page is generated.</p>
+		<h2>Updating Your List For You</h2>
+		<p>The hardest part of this was getting proper authentication to allow the site to update your list with the results from before. The biggest challenge is getting the tokens all together. 
+		   This site manages to use 3 legged authentication, where you have to log in to get a token, then that token is passed with my API's id and secret, which is then passed back with a token that 
+		   allows for your account to be modified. All this site does is add to your list, but AniList offers many functions that you can use once you've generated the token. Yet once all this 
+		   exchange is done, the site will update your list and then send a confirmation page, which is essentially the end of the site, the only option is to go back to the beginning.</p>
+		<h2>Final Thoughts</h2>
+		<p>Even after this project ends, I'll still keep it running on my Raspberry Pi. I wanted to create something that I might use in the future, or might let my friends use, rather than making 
+		   something that will be tossed. It's rare in college to get open ended projects like this one, and for that I thank the professor for giving such an interesting final project. If you have 
+		   any ideas for the site or improvements, contact me on Discord MattGuy#4376</p>
+	</body>
+</html>
