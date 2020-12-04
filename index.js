@@ -30,6 +30,11 @@ function connection_handler(req, res){
       res.writeHead(200, {"Content-Type": "text/html"});
       main.pipe(res);
    }
+   else if(req.url === "/about.html"){
+		const about = fs.createReadStream(`${workingDirectory}/html/about.html`);
+      res.writeHead(200, {"Content-Type": "text/html"});
+      about.pipe(res);
+   }
 	else if (req.url === "/favicon.ico"){
 		const icon = fs.createReadStream(`${workingDirectory}/images/favicon.ico`);
       res.writeHead(200, {"Content-Type": "image/x-icon"});
