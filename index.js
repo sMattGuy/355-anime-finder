@@ -5,9 +5,9 @@ const https = require('https');
 const querystring = require('querystring');
 
 //change depending on env
-const workingDirectory = '.';
-const credentials = require('./auth/credentials.json');
-const network = 'http://localhost:4379';
+const workingDirectory = '/var/www/html/finalProject';
+const credentials = require('/var/www/html/finalProject/auth/credentials.json');
+const network = 'http://67.244.23.211:4379';
 
 const port = 4379;
 const server = http.createServer();
@@ -71,8 +71,8 @@ function connection_handler(req, res){
 			if(string.length > 500){
 			   return false;
 			}
-			if(!string.startsWith("https:")){
-				return false;
+			if(!string.startsWith("https")){
+			   return false;
 			}
 			try {
 				new URL(string);
@@ -92,32 +92,27 @@ function connection_handler(req, res){
 				//downloads the image into cache
 				let filepath = `${workingDirectory}/cache/`;
 				let fullpath = `${filepath}${photoname}`;
-				if(!fs.existsSync(fullpath)){
-					let imgReq = https.get(anime, function(res){
-						let newImg = fs.createWriteStream(fullpath,{'encoding':null});
-						res.pipe(newImg);
-						//image done
-						newImg.on("finish",function(){
-							console.log("Upload Image Saved Succesfully");
-							getanime();
-						});
-						//writing error
-						newImg.on('error',function(err){
-							res.writeHead(404, {"Content-Type": "text/html"});
-						   res.end(`<h1>Failed To Write Image</h1>`);
-							return;
-						});
+				let imgReq = https.get(anime, function(res){
+					let newImg = fs.createWriteStream(fullpath,{'encoding':null});
+					res.pipe(newImg);
+					//image done
+					newImg.on("finish",function(){
+						console.log("Upload Image Saved Succesfully");
+						getanime();
 					});
-					//url is a photo but is unreachable
-					imgReq.on('error',function(err){
+					//writing error
+					newImg.on('error',function(err){
 						res.writeHead(404, {"Content-Type": "text/html"});
-						res.end(`<h1>Input URL Unreachable</h1>`);
+					   res.end(`<h1>Failed To Write Image</h1>`);
 						return;
 					});
-				}
-				else{
-					getanime();
-				}
+				});
+				//url is a photo but is unreachable
+				imgReq.on('error',function(err){
+					res.writeHead(404, {"Content-Type": "text/html"});
+					res.end(`<h1>Input URL Unreachable</h1>`);
+					return;
+				});
 				function getanime(){
 					console.log("getting info ready");
 					//getting information from trace.moe
