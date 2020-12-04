@@ -136,7 +136,7 @@ function connection_handler(req, res){
 					animeReq.end(whatanimedata);
 					//parse response from what anime
 					function whatanimeresults(message, res){
-						console.log("what anime info gotten");
+						console.log("Title Gotten");
 						let whatanimejson = JSON.parse(message);
 						//grabbing english title
 						let title = "";
@@ -299,6 +299,7 @@ function connection_handler(req, res){
 			stream.on("end", () => callback(body));
 		}
 		function addToList(message, res){
+			const animeIDHold = animeIDPass;
 			const parsedmessage = JSON.parse(message);
 			const token = parsedmessage.access_token;
 			let endpoint = 'https://graphql.anilist.co';
@@ -311,7 +312,7 @@ function connection_handler(req, res){
 				}
 			}
 			let query = 'mutation($mediaId:Int, $status: MediaListStatus){SaveMediaListEntry(mediaId: $mediaId, status: $status){id status}}';
-			let variables = {"mediaId":`${animeIDPass}`,"status":"PLANNING"};
+			let variables = {"mediaId":`${animeIDHold}`,"status":"PLANNING"};
 			let reqData = JSON.stringify({
 				query,
 				variables
@@ -338,7 +339,7 @@ function connection_handler(req, res){
 				let resultsInfo = JSON.parse(message);
 				let id = resultsInfo.mediaId;
 				let status = resultsInfo.status;
-				let cache = `${workingDirectory}/cache/${animeIDPass}`;
+				let cache = `${workingDirectory}/cache/${animeIDHold}`;
 				let animeInfo = require(cache);
 				res.writeHead(200, {"Content-Type": "text/html"});
 				res.end(`
