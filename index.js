@@ -101,7 +101,8 @@ function connection_handler(req, res){
 					//parse response from what anime
 					function whatanimeresults(message, res){
 						console.log("Title Gotten");
-						if(message.hasOwnProperty('error')){
+						console.log(message);
+						if(message.error.length > 0){
 							res.writeHead(400, {"Content-Type": "text/html"});
 							res.end(`<h1>400 Requested URL Not An Image</h1>`);
 							return;
