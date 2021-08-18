@@ -3,13 +3,6 @@ const url = require("url");
 const http = require('http');
 const https = require('https');
 const fetch = require('node-fetch');
-const FormData = require('form-data');
-const querystring = require('querystring');
-
-//change depending on env
-const workingDirectory = '.';
-const credentials = require('./auth/credentials.json');
-const network = 'http://localhost:4379';
 
 const port = 4379;
 const server = http.createServer();
@@ -21,45 +14,45 @@ function connection_handler(req, res){
 	if(req.url === "/"){
 		//let the jokes begin
 		let fakePerson = https.get('https://thispersondoesnotexist.com/image', function(res){
-			let fakeSave = fs.createWriteStream(`${workingDirectory}/cache/fakePerson.jpg`,{'encoding':null});
+			let fakeSave = fs.createWriteStream(`./cache/fakePerson.jpg`,{'encoding':null});
 			res.pipe(fakeSave);
 			fakeSave.on("finish",function(){
 				console.log("Imaginary Person Saved Succesfully");
 			});
 			fakeSave.on('error',function(err){console.log(err)});
 		});
-		const main = fs.createReadStream(`${workingDirectory}/html/main.html`);
+		const main = fs.createReadStream(`./html/main.html`);
 		res.writeHead(200, {"Content-Type": "text/html"});
 		main.pipe(res);
 	}
 	else if(req.url === "/about.html"){
-		const about = fs.createReadStream(`${workingDirectory}/html/about.html`);
+		const about = fs.createReadStream(`./html/about.html`);
 		res.writeHead(200, {"Content-Type": "text/html"});
 		about.pipe(res);
 	}
 	else if (req.url === "/favicon.ico"){
-		const icon = fs.createReadStream(`${workingDirectory}/images/favicon.ico`);
+		const icon = fs.createReadStream(`./images/favicon.ico`);
 		res.writeHead(200, {"Content-Type": "image/x-icon"});
 		icon.pipe(res);
 	}
 	else if (req.url === "/images/mainicon.png"){
-		const icon = fs.createReadStream(`${workingDirectory}/images/mainicon.png`);
+		const icon = fs.createReadStream(`./images/mainicon.png`);
 		res.writeHead(200, {"Content-Type": "image/png"});
 		icon.pipe(res);
 	}
 
 	else if (req.url === "/images/banner.gif"){
 		res.writeHead(200, {"Content-Type": "image/gif"});
-		const image_stream = fs.createReadStream(`${workingDirectory}/images/banner.gif`);
+		const image_stream = fs.createReadStream(`./images/banner.gif`);
 		image_stream.pipe(res);
 	}
 	else if (req.url === "/images/chika.gif"){
 		res.writeHead(200, {"Content-Type": "image/gif"});
-		const image_stream = fs.createReadStream(`${workingDirectory}/images/chika.gif`);
+		const image_stream = fs.createReadStream(`./images/chika.gif`);
 		image_stream.pipe(res);
 	}
 	else if (req.url.startsWith("/cache/")){
-		let image_stream = fs.createReadStream(`${workingDirectory}${req.url}`);
+		let image_stream = fs.createReadStream(`.${req.url}`);
 		image_stream.on("error",image_error_handler);
 		function image_error_handler(err){
 			res.writeHead(404, {"Content-Type":"text/plain"});
@@ -150,7 +143,7 @@ function connection_handler(req, res){
 							let genre = aniListInfo.data.Media.genres;
 							let popularity = aniListInfo.data.Media.popularity;
 							let aniListFinalUrl = `https://anilist.co/anime/${animeID}`;
-							const animeInfo = `${workingDirectory}/cache/${animeID}.json`;
+							const animeInfo = `./cache/${animeID}.json`;
 							if(!fs.existsSync(animeInfo)){
 								let filedata = {
 									"title":`${title}`,
