@@ -5,7 +5,11 @@ const https = require('https');
 const fetch = require('node-fetch');
 
 const port = 4379;
-const server = http.createServer();
+const options = {
+	key: fs.readFileSync('/etc/letsencrypt/live/matthewflammia.xyz/privkey.pem'),
+	cert: fs.readFileSync('/etc/letsencrypt/live/matthewflammia.xyz/fullchain.pem')
+}
+const server = https.createServer(options);
 
 let animeIDPass = 0;
 server.on("request", connection_handler);
@@ -13,7 +17,7 @@ function connection_handler(req, res){
 	console.log(`New Request for ${req.url} from ${req.socket.remoteAddress}`);
 	if(req.url === "/"){
 		//let the jokes begin
-		let fakePerson = https.get('https://thispersondoesnotexist.com/image', function(res){
+		let fakePerson = https.get('https://thispersondoesnotexist.com/', function(res){
 			let fakeSave = fs.createWriteStream(`./cache/fakePerson.jpg`,{'encoding':null});
 			res.pipe(fakeSave);
 			fakeSave.on("finish",function(){
